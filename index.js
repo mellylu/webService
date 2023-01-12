@@ -50,9 +50,22 @@ const clientRequestHandler = function (req, res) {
         res.writeHead(500, { 'Content-type': 'application/json' });
         res.end('{message : "table not exists"}');
       } else if (pathTable && pathId) {
-        const result = databaseNameTable(pathTable, pathId);
-        res.writeHead(200, { 'Content-type': 'application/json' });
-        res.end(`${JSON.stringify(pathTable)} : ${JSON.stringify(result)}`);
+        pathIdExist = false;
+        messages[pathTable].forEach((element) => {
+          console.log(element.id);
+          console.log(pathId);
+          if (element.id === pathId) {
+            pathIdExist = true;
+          }
+        });
+        if (pathIdExist) {
+          const result = databaseNameTable(pathTable, pathId);
+          res.writeHead(200, { 'Content-type': 'application/json' });
+          res.end(`${JSON.stringify(pathTable)} : ${JSON.stringify(result)}`);
+        } else {
+          res.writeHead(500, { 'Content-type': 'application/json' });
+          res.end(`{message : ${pathId} is not exist}`);
+        }
       } else if (pathTable && !pathId) {
         if (messages[pathTable]) {
           var result = databaseNameTable(pathTable);
@@ -75,6 +88,7 @@ const clientRequestHandler = function (req, res) {
         //months.splice(1, 0, 'Feb'); replacer le deuxième élément par Feb
         //months.splice(2, 1); supprimer le troisième élément
       } else if (pathTable && pathId) {
+        pathIdExist = false;
         messages[pathTable].forEach((element) => {
           if (element.id === pathId) {
             pathIdExist = true;
@@ -101,59 +115,171 @@ const clientRequestHandler = function (req, res) {
         }
       }
     } else if (req.method == 'PUT') {
-      console.log('DANS LE PUT');
-      let body = '';
-      req.on('data', function (data) {
-        body += data.toString();
-        for (i in body) {
-          console.log(i);
+      if (!messages[pathTable]) {
+        res.writeHead(500, { 'Content-type': 'application/json' });
+        res.end('{message : "table not exists"}');
+      } else {
+        if (pathTable && !pathId) {
+          let body = '';
+          req.on('data', function (data) {
+            body += data.toString();
+          });
+          req.on('end', function () {
+            body = JSON.parse(body);
+            let cpt = 0;
+            let nameTable = '';
+            for (var nom_clee in body) {
+              nameTable = nom_clee;
+              cpt += 1;
+              if (cpt === 1) {
+                if (nameTable === 'name') {
+                  body.name = `/${body.name}`;
+                  messages[body.name] = [];
+                  messages[pathTable].forEach((element) => {
+                    messages[body.name].push(element);
+                  });
+                  delete messages[pathTable];
+                  fs.writeFileSync(
+                    'nouveauFichier.json',
+                    JSON.stringify(messages),
+                  );
+                  res.writeHead(200, { 'Content-type': 'application/json' });
+                  res.end(
+                    `{message : ${body.name} : ${JSON.stringify(
+                      messages[body.name],
+                    )}}`,
+                  ); //setinterval faire un fichier
+                  //search à faire
+                } else {
+                  res.writeHead(500, { 'Content-type': 'application/json' });
+                  res.end(
+                    '{message : "il faut mettre : "name" : "....." pour changer le nom de la table}',
+                  );
+                }
+              } else {
+                res.writeHead(500, { 'Content-type': 'application/json' });
+                res.end(
+                  '{message : "il faut mettre : "name" : "....." pour changer le nom de la table}',
+                );
+              }
+            }
+          });
+        } else if (pathTable && pathId) {
+          messages[pathTable].forEach((element) => {
+            if (element.id === pathId) {
+              pathIdExist = true;
+            }
+          });
+          if (pathIdExist) {
+            console.log('DANS le ID');
+            let body = '';
+            let elementMessage;
+            let n;
+            let j = false;
+            let b;
+            let c;
+            req.on('data', function (data) {
+              body += data.toString();
+              body = JSON.parse(body);
+            });
+            req.on('end', function () {
+              //mise à jour si existe pas alors ça l'ajoute dans la table sinon ça remplace
+
+              const result = databaseNameTable(pathTable, pathId);
+              console.log('result');
+              result.forEach((element) => {
+                elementMessage = element;
+              });
+
+              for (var nom_clee in body) {
+                for (var i in elementMessage) {
+                  console.log('-----------');
+                  if (i !== 'id') {
+                    if (nom_clee === i) {
+                      elementMessage[i] = body[i];
+                      messages[pathTable] = messages[pathTable].filter(
+                        (x) => x.id !== pathId,
+                      );
+                      messages[pathTable].push(elementMessage);
+                    } else {
+                      console.log(nom_clee);
+                      console.log('dans le else');
+                      c = {
+                        [nom_clee]: body[nom_clee],
+                      };
+                      elementMessage = Object.assign(c, elementMessage);
+
+                      messages[pathTable] = messages[pathTable].filter(
+                        (x) => x.id !== pathId,
+                      );
+                      messages[pathTable].push(elementMessage);
+                    }
+                  }
+                }
+              }
+              fs.writeFileSync('nouveauFichier.json', JSON.stringify(messages));
+              res.writeHead(200, {
+                'Content-type': 'application/json',
+              });
+              res.end(`{message : update ok}`);
+            });
+          } else {
+            res.writeHead(500, { 'Content-type': 'application/json' });
+            res.end(`{message : id : ${pathId} is not exist}`);
+          }
         }
-      });
-      const result = databaseNameTable(pathTable, pathId);
+      }
+      // const result = databaseNameTable(pathTable, pathId);
     } else if (req.method == 'POST') {
-      let body = '';
-      req.on('data', function (data) {
-        body += data.toString();
-      });
-      req.on('end', function () {
-        let options = {
-          port: portInterServer1,
-          hostname: host2,
-          host: host2 + ':' + portInterServer1,
-          path: path,
-          method: req.method,
-        };
-        // if (path.slice(0, 1) == '/') {
-        //   console.log(path);
-        //   const path2 = path.slice(1, path.length);
-        //   console.log(path);
-        // }
-        let request = http.request(options, function (response) {
-          let body = content;
-          response.on('error', function (e) {
+      if (!pathId) {
+        let body = '';
+        req.on('data', function (data) {
+          body += data.toString();
+        });
+        req.on('end', function () {
+          let options = {
+            port: portInterServer1,
+            hostname: host2,
+            host: host2 + ':' + portInterServer1,
+            path: path,
+            method: req.method,
+          };
+          // if (path.slice(0, 1) == '/') {
+          //   console.log(path);
+          //   const path2 = path.slice(1, path.length);
+          //   console.log(path);
+          // }
+          let request = http.request(options, function (response) {
+            let body = content;
+            response.on('error', function (e) {
+              console.log(e);
+              res.writeHead(500, { 'Content-type': 'application/json' });
+              res.end(e);
+            });
+            response.on('data', function (data) {
+              body += data.toString();
+              console.log(body);
+              fs.writeFileSync('nouveauFichier.json', JSON.stringify(messages));
+            });
+            response.on('end', function () {
+              res.writeHead(200, { 'Content-type': 'application/json' });
+              console.log(messages[pathTable]);
+              res.end(`${pathTable} : ${JSON.stringify(messages[pathTable])}`);
+            });
+          });
+          request.on('error', function (e) {
             console.log(e);
             res.writeHead(500, { 'Content-type': 'application/json' });
             res.end(e);
           });
-          response.on('data', function (data) {
-            body += data.toString();
-
-            fs.writeFileSync('nouveauFichier.json', JSON.stringify(messages));
-          });
-          response.on('end', function () {
-            res.writeHead(200, { 'Content-type': 'application/json' });
-            res.end(body);
-          });
+          request.end(body);
         });
-        request.on('error', function (e) {
-          console.log(e);
-          res.writeHead(500, { 'Content-type': 'application/json' });
-          res.end(e);
-        });
-        request.end(body);
-      });
+      } else {
+        console.log('error 404');
+        res.writeHead(404, { 'Content-type': 'application/json' });
+        res.end('{message : "path not correct"}');
+      }
     } else {
-      console.log('error 404');
       res.writeHead(404, { 'Content-type': 'application/json' });
       res.end('{message : "page not found"}');
     }
@@ -170,8 +296,9 @@ const interServerRequestHandler = function (req, res) {
       let body = '';
       res.writeHead(200, { 'Content-type': 'application/json' });
       req.on('data', function (data) {
+        console.log(data);
         body += data.toString();
-        console.log(typeof body);
+        // console.log(typeof body);
         let source = { id: crypto.randomBytes(16).toString('hex') };
         body = JSON.parse(body);
         body = Object.assign(body, source);
@@ -181,7 +308,7 @@ const interServerRequestHandler = function (req, res) {
           messages[path] = [];
         }
         messages[path].push(body); //met en format json
-        res.end(`{status : "ok"} ${messages}`);
+        res.end(`${JSON.stringify(messages[path])}`);
       });
     } else {
       res.writeHead(404, { 'Content-type': 'application/json' });
