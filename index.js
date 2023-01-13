@@ -36,6 +36,8 @@ const databaseNameTable = (elTable, elId) => {
 
 const clientRequestHandler = function (req, res) {
   let path = req.url.split('?')[0];
+  let pathSearch = req.url.split('?')[1];
+  console.log(pathSearch);
   let pathTable = '/' + req.url.split('/')[1];
   let pathId = req.url.split('/')[2];
 
@@ -45,36 +47,37 @@ const clientRequestHandler = function (req, res) {
     res.end('{message : "page not found"}');
   } else {
     if (req.method == 'GET') {
-      res.writeHead(200, { 'Content-type': 'application/json' });
-      if (!messages[pathTable]) {
-        res.writeHead(500, { 'Content-type': 'application/json' });
-        res.end('{message : "table not exists"}');
-      } else if (pathTable && pathId) {
-        pathIdExist = false;
-        messages[pathTable].forEach((element) => {
-          console.log(element.id);
-          console.log(pathId);
-          if (element.id === pathId) {
-            pathIdExist = true;
-          }
-        });
-        if (pathIdExist) {
-          const result = databaseNameTable(pathTable, pathId);
-          res.writeHead(200, { 'Content-type': 'application/json' });
-          res.end(`${JSON.stringify(pathTable)} : ${JSON.stringify(result)}`);
-        } else {
-          res.writeHead(500, { 'Content-type': 'application/json' });
-          res.end(`{message : ${pathId} is not exist}`);
-        }
-      } else if (pathTable && !pathId) {
-        if (messages[pathTable]) {
-          var result = databaseNameTable(pathTable);
-          res.writeHead(200, { 'Content-type': 'application/json' });
-          res.end(`${JSON.stringify(pathTable)} : ${JSON.stringify(result)}`);
-        }
+      if (pathSearch) {
       } else {
-        res.writeHead(404, { 'Content-type': 'application/json' });
-        res.end('{message : "page not found"}');
+        res.writeHead(200, { 'Content-type': 'application/json' });
+        if (!messages[pathTable]) {
+          res.writeHead(500, { 'Content-type': 'application/json' });
+          res.end('{message : "table not exists"}');
+        } else if (pathTable && pathId) {
+          pathIdExist = false;
+          messages[pathTable].forEach((element) => {
+            if (element.id === pathId) {
+              pathIdExist = true;
+            }
+          });
+          if (pathIdExist) {
+            const result = databaseNameTable(pathTable, pathId);
+            res.writeHead(200, { 'Content-type': 'application/json' });
+            res.end(`${JSON.stringify(pathTable)} : ${JSON.stringify(result)}`);
+          } else {
+            res.writeHead(500, { 'Content-type': 'application/json' });
+            res.end(`{message : ${pathId} is not exist}`);
+          }
+        } else if (pathTable && !pathId) {
+          if (messages[pathTable]) {
+            var result = databaseNameTable(pathTable);
+            res.writeHead(200, { 'Content-type': 'application/json' });
+            res.end(`${JSON.stringify(pathTable)} : ${JSON.stringify(result)}`);
+          }
+        } else {
+          res.writeHead(404, { 'Content-type': 'application/json' });
+          res.end('{message : "page not found"}');
+        }
       }
     } else if (req.method == 'DELETE') {
       if (!messages[pathTable]) {
@@ -82,7 +85,6 @@ const clientRequestHandler = function (req, res) {
         res.end('{message : "table not exists"}');
       } else if (pathTable && !pathId) {
         delete messages[pathTable];
-        fs.writeFileSync('nouveauFichier.json', JSON.stringify(messages));
         res.end(`{message : "table ${pathTable} is delete"}`);
         //splice sert à remplacer, ajouter et supprimer
         //months.splice(1, 0, 'Feb'); replacer le deuxième élément par Feb
@@ -100,13 +102,11 @@ const clientRequestHandler = function (req, res) {
           );
           if (messages[pathTable].length === 0) {
             delete messages[pathTable];
-            fs.writeFileSync('nouveauFichier.json', JSON.stringify(messages));
             res.end(`{message : "table ${pathTable} is delete"}`);
           } else {
             messages[pathTable] = messages[pathTable].filter(
               (x) => x.id !== pathId,
             );
-            fs.writeFileSync('nouveauFichier.json', JSON.stringify(messages));
             res.end(`{message : "element ${pathTable} ${pathId} is delete"}`);
           }
         } else {
@@ -139,21 +139,16 @@ const clientRequestHandler = function (req, res) {
                     messages[body.name].push(element);
                   });
                   delete messages[pathTable];
-                  fs.writeFileSync(
-                    'nouveauFichier.json',
-                    JSON.stringify(messages),
-                  );
+
                   res.writeHead(200, { 'Content-type': 'application/json' });
                   res.end(
-                    `{message : ${body.name} : ${JSON.stringify(
-                      messages[body.name],
-                    )}}`,
+                    `{${body.name} : ${JSON.stringify(messages[body.name])}}`,
                   ); //setinterval faire un fichier
                   //search à faire
                 } else {
                   res.writeHead(500, { 'Content-type': 'application/json' });
                   res.end(
-                    '{message : "il faut mettre : "name" : "....." pour changer le nom de la table}',
+                    `{message : "il faut mettre : "name" : "....." pour changer le nom de la table}`,
                   );
                 }
               } else {
@@ -174,9 +169,6 @@ const clientRequestHandler = function (req, res) {
             console.log('DANS le ID');
             let body = '';
             let elementMessage;
-            let n;
-            let j = false;
-            let b;
             let c;
             req.on('data', function (data) {
               body += data.toString();
@@ -186,14 +178,12 @@ const clientRequestHandler = function (req, res) {
               //mise à jour si existe pas alors ça l'ajoute dans la table sinon ça remplace
 
               const result = databaseNameTable(pathTable, pathId);
-              console.log('result');
               result.forEach((element) => {
                 elementMessage = element;
               });
 
               for (var nom_clee in body) {
                 for (var i in elementMessage) {
-                  console.log('-----------');
                   if (i !== 'id') {
                     if (nom_clee === i) {
                       elementMessage[i] = body[i];
@@ -217,7 +207,6 @@ const clientRequestHandler = function (req, res) {
                   }
                 }
               }
-              fs.writeFileSync('nouveauFichier.json', JSON.stringify(messages));
               res.writeHead(200, {
                 'Content-type': 'application/json',
               });
@@ -229,7 +218,6 @@ const clientRequestHandler = function (req, res) {
           }
         }
       }
-      // const result = databaseNameTable(pathTable, pathId);
     } else if (req.method == 'POST') {
       if (!pathId) {
         let body = '';
@@ -244,25 +232,17 @@ const clientRequestHandler = function (req, res) {
             path: path,
             method: req.method,
           };
-          // if (path.slice(0, 1) == '/') {
-          //   console.log(path);
-          //   const path2 = path.slice(1, path.length);
-          //   console.log(path);
-          // }
           let request = http.request(options, function (response) {
             let body = content;
             response.on('error', function (e) {
-              console.log(e);
               res.writeHead(500, { 'Content-type': 'application/json' });
               res.end(e);
             });
             response.on('data', function (data) {
               body += data.toString();
               console.log(body);
-              fs.writeFileSync('nouveauFichier.json', JSON.stringify(messages));
             });
             response.on('end', function () {
-              res.writeHead(200, { 'Content-type': 'application/json' });
               console.log(messages[pathTable]);
               res.end(`${pathTable} : ${JSON.stringify(messages[pathTable])}`);
             });
@@ -275,7 +255,6 @@ const clientRequestHandler = function (req, res) {
           request.end(body);
         });
       } else {
-        console.log('error 404');
         res.writeHead(404, { 'Content-type': 'application/json' });
         res.end('{message : "path not correct"}');
       }
@@ -296,9 +275,7 @@ const interServerRequestHandler = function (req, res) {
       let body = '';
       res.writeHead(200, { 'Content-type': 'application/json' });
       req.on('data', function (data) {
-        console.log(data);
         body += data.toString();
-        // console.log(typeof body);
         let source = { id: crypto.randomBytes(16).toString('hex') };
         body = JSON.parse(body);
         body = Object.assign(body, source);
@@ -316,6 +293,10 @@ const interServerRequestHandler = function (req, res) {
     }
   }
 };
+
+setInterval(function () {
+  fs.writeFileSync('nouveauFichier.json', JSON.stringify(messages));
+}, 300000);
 
 let clientServer = http.createServer(clientRequestHandler);
 let interServer = http.createServer(interServerRequestHandler);
