@@ -105,6 +105,7 @@ const clientRequestHandler = function (req, res) {
       let body = '';
       req.on('data', function (data) {
         body += data.toString();
+        console.log(req)
         for (i in body) {
           console.log(i);
         }
@@ -169,6 +170,7 @@ const interServerRequestHandler = function (req, res) {
     if (req.method == 'POST') {
       let body = '';
       res.writeHead(200, { 'Content-type': 'application/json' });
+      console.log(req)
       req.on('data', function (data) {
         body += data.toString();
         console.log(typeof body);
