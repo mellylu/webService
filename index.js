@@ -192,7 +192,7 @@ const clientRequestHandler = function (req, res) {
               cpt += 1;
               if (cpt === 1) {
                 if (nameTable === 'name') {
-                  body.name = `/${body.name}`;
+                  body.name = `${body.name}`;
                   messages[body.name] = [];
                   messages[pathTable].forEach((element) => {
                     messages[body.name].push(element);
