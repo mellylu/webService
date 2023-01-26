@@ -1,5 +1,4 @@
 const http = require('http');
-const httpServer = http.createServer();
 const fs = require('fs');
 const crypto = require('crypto');
 
@@ -19,18 +18,8 @@ let pathDataBase;
 let nameBD;
 let BD = [];
 let messages2;
+let notnull;
 
-// var files = fs.readdirSync('database');
-// files.forEach((element) => {
-//   nameBD = element;
-//   fs.readFile(`database/${element}`, 'utf8', function (err, data) {
-//     content = data;
-//     if (content) {
-//       messages = JSON.parse(content);
-//       BD.push(messages);
-//     }
-//   });
-// });
 fs.readFile(`database/database.json`, 'utf8', function (err, data) {
   content = data;
   if (content) {
@@ -56,6 +45,11 @@ const clientRequestHandler = function (req, res) {
 
     'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT, DELETE',
   };
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200, headersGetOnly);
+    res.end('KKKKKKKKKKKK');
+    return 0;
+  }
 
   let path = req.url.split('?')[0];
   let pathSearch = req.url.split('?')[1];
@@ -69,7 +63,7 @@ const clientRequestHandler = function (req, res) {
   if (pathSearch) {
     pathSearchs = pathSearch.split('&');
   }
-
+  console.log(req.method);
   if (!path || path == '/') {
     res.writeHead(404, headersGetOnly);
     res.end('{message : "page not found"}');
@@ -113,7 +107,7 @@ const clientRequestHandler = function (req, res) {
             res.end(`${tabb}`);
           } else {
             res.writeHead(500, headersGetOnly);
-            res.end('{message : "search not found}');
+            res.end('{message : "search not found"}');
           }
         }
       } else {
@@ -147,8 +141,12 @@ const clientRequestHandler = function (req, res) {
           res.end('{message : "page not found"}');
         }
       }
-    } else if (req.method == 'DELETE') {
+    } else if (req.method === 'DELETE') {
+      // res.writeHead(200, headersGetOnly);
+      console.log(pathTable);
+      console.log(messages[pathTable]);
       if (!messages[pathTable]) {
+        console.log('passe dans le bon');
         res.writeHead(500, headersGetOnly);
         res.end('{message : "table not exists"}');
       } else if (pathTable && !pathId) {
@@ -201,17 +199,33 @@ const clientRequestHandler = function (req, res) {
               cpt += 1;
               if (cpt === 1) {
                 if (nameTable === 'name') {
-                  body.name = `${body.name}`;
-                  messages[body.name] = [];
-                  messages[pathTable].forEach((element) => {
-                    messages[body.name].push(element);
-                  });
-                  delete messages[pathTable];
+                  if (body.name) {
+                    if (body.name.match(onecaracspe)) {
+                      res.writeHead(500, headersGetOnly);
+                      res.end(
+                        '{message : "Les caractères spéciaux ne sont pas autorisés dans le nom des tables"}',
+                      );
+                    } else {
+                      body.name = `${body.name}`;
+                      messages[body.name] = [];
+                      messages[pathTable].forEach((element) => {
+                        messages[body.name].push(element);
+                      });
+                      delete messages[pathTable];
 
-                  res.writeHead(200, headersGetOnly);
-                  res.end(
-                    `{${body.name} : ${JSON.stringify(messages[body.name])}}`,
-                  ); //setinterval faire un fichier
+                      res.writeHead(200, headersGetOnly);
+                      res.end(
+                        `{${body.name} : ${JSON.stringify(
+                          messages[body.name],
+                        )}}`,
+                      );
+                    }
+                  } else {
+                    res.writeHead(500, headersGetOnly);
+                    res.end(`{new name is not null}`);
+                  }
+
+                  //setinterval faire un fichier
                   //search à faire
                 } else {
                   res.writeHead(500, headersGetOnly);
@@ -249,7 +263,8 @@ const clientRequestHandler = function (req, res) {
               result.forEach((element) => {
                 elementMessage = element;
               });
-
+              let key;
+              let value;
               for (var nom_clee in body) {
                 for (var i in elementMessage) {
                   if (i !== 'id') {
@@ -260,23 +275,33 @@ const clientRequestHandler = function (req, res) {
                       );
                       messages[pathTable].push(elementMessage);
                     } else {
-                      console.log(nom_clee);
-                      console.log('dans le else');
-                      c = {
-                        [nom_clee]: body[nom_clee],
-                      };
-                      elementMessage = Object.assign(c, elementMessage);
+                      key = nom_clee;
+                      value = body[nom_clee];
+                      console.log(key);
+                      console.log(value);
+                      if (nom_clee !== '' && body[nom_clee] !== '') {
+                        c = {
+                          [nom_clee]: body[nom_clee],
+                        };
+                        elementMessage = Object.assign(c, elementMessage);
 
-                      messages[pathTable] = messages[pathTable].filter(
-                        (x) => x.id !== pathId,
-                      );
-                      messages[pathTable].push(elementMessage);
+                        messages[pathTable] = messages[pathTable].filter(
+                          (x) => x.id !== pathId,
+                        );
+                        messages[pathTable].push(elementMessage);
+                      }
                     }
                   }
                 }
               }
-              res.writeHead(200, headersGetOnly);
-              res.end(`{message : update ok}`);
+              if (key && value) {
+                console.log('dans uf');
+                res.writeHead(200, headersGetOnly);
+                res.end(`{message : update ok}`);
+              } else {
+                res.writeHead(500, headersGetOnly);
+                res.end(`key and value are not null`);
+              }
             });
           } else {
             res.writeHead(500, headersGetOnly);
@@ -317,10 +342,19 @@ const clientRequestHandler = function (req, res) {
               response.on('data', function (data) {
                 body += data.toString();
               });
-              response.on('end', function () {
-                res.writeHead(200, headersGetOnly);
-                res.end(`${pathTable} : ok}`);
-              });
+              console.log('notnull');
+              console.log(notnull);
+              if (notnull) {
+                response.on('end', function () {
+                  res.writeHead(200, headersGetOnly);
+                  res.end(`${pathTable} : ok}`);
+                });
+              } else {
+                response.on('end', function () {
+                  res.writeHead(500, headersGetOnly);
+                  res.end(`key and value is not null`);
+                });
+              }
             });
             request.on('error', function (e) {
               console.log(e);
@@ -347,6 +381,7 @@ const interServerRequestHandler = function (req, res) {
 
     'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT, DELETE',
   };
+
   let pathTable = req.url.split('/')[1];
   console.log(pathTable);
   if (!pathTable || pathTable == '/') {
@@ -358,18 +393,38 @@ const interServerRequestHandler = function (req, res) {
       res.writeHead(200, headersGetOnly);
       req.on('data', function (data) {
         body += data.toString();
+        // for (let i in JSON.parse(body)) {
+
+        // if (i !== '' && body[i] !== '') {
+        //   console.log('dans le bon kkkkkkkkkkkkkkkkkk');
+        // } else {
+        //   console.log('EEELLLLLLLLLSSSSSSSSEEEEEEEE');
+        // }
+        // }
         let source = { id: crypto.randomBytes(16).toString('hex') };
         body = JSON.parse(body);
+        if (Object.keys(body) && Object.values(body)) {
+          console.log('not null true');
+          notnull = true;
+        } else {
+          console.log('not null false');
+          notnull = false;
+        }
         body = Object.assign(body, source);
       });
-      console.log(body);
+
       req.on('end', function () {
-        if (!messages[pathTable]) {
-          messages[pathTable] = [];
+        if (notnull) {
+          if (!messages[pathTable]) {
+            messages[pathTable] = [];
+          }
+          messages[pathTable].push(body); //met en format json
+          res.writeHead(200, headersGetOnly);
+          res.end(`${JSON.stringify(messages[pathTable])}`);
+        } else {
+          res.writeHead(500, headersGetOnly);
+          res.end(`key and value are not null`);
         }
-        messages[pathTable].push(body); //met en format json
-        res.writeHead(200, headersGetOnly);
-        res.end(`${JSON.stringify(messages[pathTable])}`);
       });
     } else {
       res.writeHead(404, headersGetOnly);
