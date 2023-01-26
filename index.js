@@ -31,6 +31,8 @@ const databaseNameTable = (elTable, elId) => {
   let result = [];
   if (typeof elId == 'undefined') {
     messages[elTable].forEach((element) => {
+      console.log(element);
+      // result.unshift(element.id);
       result.push(element);
     });
     return result;
@@ -393,24 +395,20 @@ const interServerRequestHandler = function (req, res) {
       res.writeHead(200, headersGetOnly);
       req.on('data', function (data) {
         body += data.toString();
-        // for (let i in JSON.parse(body)) {
-
-        // if (i !== '' && body[i] !== '') {
-        //   console.log('dans le bon kkkkkkkkkkkkkkkkkk');
-        // } else {
-        //   console.log('EEELLLLLLLLLSSSSSSSSEEEEEEEE');
-        // }
-        // }
         let source = { id: crypto.randomBytes(16).toString('hex') };
         body = JSON.parse(body);
-        if (Object.keys(body) && Object.values(body)) {
+        let x1;
+        let x2;
+        Object.values(body).forEach((element) => (x1 = element));
+        Object.keys(body).forEach((element) => (x2 = element));
+        if (x1 !== '' && x2 !== '') {
           console.log('not null true');
           notnull = true;
         } else {
           console.log('not null false');
           notnull = false;
         }
-        body = Object.assign(body, source);
+        body = Object.assign(source, body);
       });
 
       req.on('end', function () {
