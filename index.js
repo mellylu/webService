@@ -108,14 +108,14 @@ const clientRequestHandler = function (req, res) {
             res.writeHead(200, headersGetOnly);
             res.end(`${tabb}`);
           } else {
-            res.writeHead(500, headersGetOnly);
+            res.writeHead(404, headersGetOnly);
             res.end('{message : "search not found"}');
           }
         }
       } else {
         res.writeHead(200, { 'Content-type': 'application/json' });
         if (!messages[pathTable]) {
-          res.writeHead(500, headersGetOnly);
+          res.writeHead(404, headersGetOnly);
           res.end('{message : "table not exists"}');
         } else if (pathTable && pathId) {
           pathIdExist = false;
@@ -129,7 +129,7 @@ const clientRequestHandler = function (req, res) {
             res.writeHead(200, headersGetOnly);
             res.end(`${JSON.stringify(result)}`);
           } else {
-            res.writeHead(500, headersGetOnly);
+            res.writeHead(404, headersGetOnly);
             res.end(`{message : ${pathId} is not exist}`);
           }
         } else if (pathTable && !pathId) {
@@ -149,7 +149,7 @@ const clientRequestHandler = function (req, res) {
       console.log(messages[pathTable]);
       if (!messages[pathTable]) {
         console.log('passe dans le bon');
-        res.writeHead(500, headersGetOnly);
+        res.writeHead(404, headersGetOnly);
         res.end('{message : "table not exists"}');
       } else if (pathTable && !pathId) {
         delete messages[pathTable];
@@ -178,13 +178,13 @@ const clientRequestHandler = function (req, res) {
             res.end(`{message : "element ${pathTable} ${pathId} is delete"}`);
           }
         } else {
-          res.writeHead(500, headersGetOnly);
+          res.writeHead(404, headersGetOnly);
           res.end('{message : "id not exist"}');
         }
       }
     } else if (req.method == 'PUT') {
       if (!messages[pathTable]) {
-        res.writeHead(500, headersGetOnly);
+        res.writeHead(404, headersGetOnly);
         res.end('{message : "table not exists"}');
       } else {
         if (pathTable && !pathId) {
@@ -203,7 +203,7 @@ const clientRequestHandler = function (req, res) {
                 if (nameTable === 'name') {
                   if (body.name) {
                     if (body.name.match(onecaracspe)) {
-                      res.writeHead(500, headersGetOnly);
+                      res.writeHead(404, headersGetOnly);
                       res.end(
                         '{message : "Les caractères spéciaux ne sont pas autorisés dans le nom des tables"}',
                       );
@@ -223,20 +223,20 @@ const clientRequestHandler = function (req, res) {
                       );
                     }
                   } else {
-                    res.writeHead(500, headersGetOnly);
+                    res.writeHead(404, headersGetOnly);
                     res.end(`{new name is not null}`);
                   }
 
                   //setinterval faire un fichier
                   //search à faire
                 } else {
-                  res.writeHead(500, headersGetOnly);
+                  res.writeHead(404, headersGetOnly);
                   res.end(
                     `{message : "il faut mettre : "name" : "....." pour changer le nom de la table}`,
                   );
                 }
               } else {
-                res.writeHead(500, headersGetOnly);
+                res.writeHead(404, headersGetOnly);
                 res.end(
                   '{message : "il faut mettre : "name" : "....." pour changer le nom de la table}',
                 );
@@ -271,6 +271,8 @@ const clientRequestHandler = function (req, res) {
                 for (var i in elementMessage) {
                   if (i !== 'id') {
                     if (nom_clee === i) {
+                      key = nom_clee;
+                      value = body[nom_clee];
                       elementMessage[i] = body[i];
                       messages[pathTable] = messages[pathTable].filter(
                         (x) => x.id !== pathId,
@@ -279,8 +281,6 @@ const clientRequestHandler = function (req, res) {
                     } else {
                       key = nom_clee;
                       value = body[nom_clee];
-                      console.log(key);
-                      console.log(value);
                       if (nom_clee !== '' && body[nom_clee] !== '') {
                         c = {
                           [nom_clee]: body[nom_clee],
@@ -301,12 +301,12 @@ const clientRequestHandler = function (req, res) {
                 res.writeHead(200, headersGetOnly);
                 res.end(`{message : update ok}`);
               } else {
-                res.writeHead(500, headersGetOnly);
+                res.writeHead(404, headersGetOnly);
                 res.end(`key and value are not null`);
               }
             });
           } else {
-            res.writeHead(500, headersGetOnly);
+            res.writeHead(404, headersGetOnly);
             res.end(`{message : id : ${pathId} is not exist}`);
           }
         }
@@ -314,7 +314,7 @@ const clientRequestHandler = function (req, res) {
     } else if (req.method == 'POST') {
       pathTable = '/' + req.url.split('/')[1];
       if (path.substr(1).match(onecaracspe)) {
-        res.writeHead(500, headersGetOnly);
+        res.writeHead(404, headersGetOnly);
         res.end(
           '{message : "Les caractères spéciaux ne sont pas autorisés dans le nom des tables"}',
         );
@@ -338,7 +338,7 @@ const clientRequestHandler = function (req, res) {
             let request = http.request(options, function (response) {
               let body = content;
               response.on('error', function (e) {
-                res.writeHead(500, headersGetOnly);
+                res.writeHead(404, headersGetOnly);
                 res.end(e);
               });
               response.on('data', function (data) {
@@ -353,14 +353,14 @@ const clientRequestHandler = function (req, res) {
                 });
               } else {
                 response.on('end', function () {
-                  res.writeHead(500, headersGetOnly);
+                  res.writeHead(404, headersGetOnly);
                   res.end(`key and value is not null`);
                 });
               }
             });
             request.on('error', function (e) {
               console.log(e);
-              res.writeHead(500, headersGetOnly);
+              res.writeHead(404, headersGetOnly);
               res.end(e);
             });
             request.end(body);
@@ -420,7 +420,7 @@ const interServerRequestHandler = function (req, res) {
           res.writeHead(200, headersGetOnly);
           res.end(`${JSON.stringify(messages[pathTable])}`);
         } else {
-          res.writeHead(500, headersGetOnly);
+          res.writeHead(404, headersGetOnly);
           res.end(`key and value are not null`);
         }
       });
